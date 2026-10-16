@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 
 import 'casos/factory.dart';
 import 'casos/repository.dart';
-import 'casos/strategy.dart';
 import 'casos/inyeccion_dependencias.dart';
-import 'casos/observer.dart';
 import 'casos/adapter.dart';
+import 'casos/observer.dart';
+import 'casos/strategy.dart';
 
 void main() {
   final almacen = ConsumoEnMemoria();

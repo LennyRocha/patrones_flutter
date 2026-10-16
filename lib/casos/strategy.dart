@@ -1,77 +1,89 @@
 import 'package:flutter/material.dart';
 
-//strategy
-abstract class FuenteLab {
-  Future<void> guardar(String laboratorio, double litros);
+//Strategy
+abstract class ReglaTope {
+  String get nombre;
+  String get unidad;
+  bool acepta(double valor);
 }
 
-class LabEnMemoria implements FuenteLab {
+class TopeAgua implements ReglaTope {
   @override
-  Future<void> guardar(String laboratorio, double litros) async {}
-}
-
-class LabQueFalla implements FuenteLab {
+  String get nombre => 'Agua';
   @override
-  Future<void> guardar(String laboratorio, double litros) async {
-    throw Exception('Fallo simulado al guardar $laboratorio');
-  }
+  String get unidad => 'L';
+  @override
+  bool acepta(double valor) => valor > 0 && valor <= 10000;
 }
 
-/// Esta clase NO cambia entre los dos modos.
-class PantallaRegistro extends StatelessWidget {
-  const PantallaRegistro({super.key, required this.fuente});
+class TopeLuz implements ReglaTope {
+  @override
+  String get nombre => 'Luz';
+  @override
+  String get unidad => 'kWh';
+  @override
+  bool acepta(double valor) => valor > 0 && valor <= 500;
+}
 
-  final FuenteLab fuente;
+class ValidadorLectura {
+  ValidadorLectura(this.regla);
 
-  Future<void> _alPulsarGuardar(BuildContext context) async {
-    final mensajero = ScaffoldMessenger.of(context);
-    try {
-      await fuente.guardar('Lab Química', 12.5);
-      mensajero.showSnackBar(const SnackBar(content: Text('Guardado')));
-    } catch (e) {
-      mensajero.showSnackBar(SnackBar(content: Text('Error: $e')));
+  final ReglaTope regla;
+
+  String resultado(double valor) {
+    if (regla.acepta(valor)) {
+      return 'aceptada';
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FilledButton(
-      onPressed: () => _alPulsarGuardar(context),
-      child: const Text('Guardar Lab Química · 12.5 L'),
-    );
+    return 'rechazada';
   }
 }
 
-class PantallaLab extends StatefulWidget {
-  const PantallaLab({super.key});
+class PantallaTope extends StatefulWidget {
+  const PantallaTope({super.key});
 
   @override
-  State<PantallaLab> createState() => _PantallaLabState();
+  State<PantallaTope> createState() => _PantallaTopeState();
 }
 
-class _PantallaLabState extends State<PantallaLab> {
-  bool _ensayarFallo = false;
+class _PantallaTopeState extends State<PantallaTope> {
+  final _reglas = <ReglaTope>[TopeAgua(), TopeLuz()];
+  late ReglaTope _regla = _reglas.first;
+  double _valor = 800;
 
   @override
   Widget build(BuildContext context) {
-    final FuenteLab fuente = _ensayarFallo ? LabQueFalla() : LabEnMemoria();
-
+    final resultado = ValidadorLectura(_regla).resultado(_valor);
     return Scaffold(
-      appBar: AppBar(title: const Text('Laboratorio')),
+      appBar: AppBar(title: const Text('Tope')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          SwitchListTile(
-            title: const Text('Entregar LabQueFalla'),
-            subtitle: Text('Se entrega: ${fuente.runtimeType}'),
-            value: _ensayarFallo,
-            onChanged: (v) => setState(() => _ensayarFallo = v),
+          SegmentedButton<ReglaTope>(
+            segments: [
+              for (final r in _reglas)
+                ButtonSegment(value: r, label: Text(r.nombre)),
+            ],
+            selected: {_regla},
+            onSelectionChanged: (s) => setState(() => _regla = s.first),
           ),
           const SizedBox(height: 16),
-          PantallaRegistro(fuente: fuente),
+          Text('Lectura: ${_valor.toStringAsFixed(0)} ${_regla.unidad}'),
+          Slider(
+            value: _valor,
+            max: 1200,
+            onChanged: (v) => setState(() => _valor = v),
+          ),
+          Text(
+            'ValidadorLectura(${_regla.runtimeType}) → $resultado',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 16),
+          const Text(
+            'Prueba 800: agua la acepta, luz la rechaza. '
+            'ValidadorLectura es la misma clase en los dos casos.',
+          ),
         ],
       ),
     );
   }
 }
-

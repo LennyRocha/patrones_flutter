@@ -1,69 +1,77 @@
-import 'dart:math';
-
 import 'package:flutter/material.dart';
 
 //Inyección de dependencias
-class MedidorLegado {
-  MedidorLegado({Random? azar}) : _azar = azar ?? Random();
-
-  final Random _azar;
-
-  String leerCrudo() {
-    final litros = (_azar.nextInt(200) + 1) / 10;
-    return '$litros L';
-  }
+abstract class FuenteLab {
+  Future<void> guardar(String laboratorio, double litros);
 }
 
-class LectorMedidor {
-  LectorMedidor(this.legado);
-
-  final MedidorLegado legado;
-
-  double leerLitros() {
-    final texto = legado.leerCrudo();
-    final numero = texto.split(' ').first;
-    return double.parse(numero);
-  }
-}
-
-class PantallaMedidor extends StatefulWidget {
-  const PantallaMedidor({super.key, required this.lector});
-
-  final LectorMedidor lector;
-
+class LabEnMemoria implements FuenteLab {
   @override
-  State<PantallaMedidor> createState() => _PantallaMedidorState();
+  Future<void> guardar(String laboratorio, double litros) async {}
 }
 
-class _PantallaMedidorState extends State<PantallaMedidor> {
-  final List<double> _lecturas = [];
+class LabQueFalla implements FuenteLab {
+  @override
+  Future<void> guardar(String laboratorio, double litros) async {
+    throw Exception('Fallo simulado al guardar $laboratorio');
+  }
+}
+
+/// Esta clase NO cambia entre los dos modos.
+class PantallaRegistro extends StatelessWidget {
+  const PantallaRegistro({super.key, required this.fuente});
+
+  final FuenteLab fuente;
+
+  Future<void> _alPulsarGuardar(BuildContext context) async {
+    final mensajero = ScaffoldMessenger.of(context);
+    try {
+      await fuente.guardar('Lab Química', 12.5);
+      mensajero.showSnackBar(const SnackBar(content: Text('Guardado')));
+    } catch (e) {
+      mensajero.showSnackBar(SnackBar(content: Text('Error: $e')));
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    final total = _lecturas.fold<double>(0, (s, l) => s + l);
+    return FilledButton(
+      onPressed: () => _alPulsarGuardar(context),
+      child: const Text('Guardar Lab Química · 12.5 L'),
+    );
+  }
+}
+
+class PantallaLab extends StatefulWidget {
+  const PantallaLab({super.key});
+
+  @override
+  State<PantallaLab> createState() => _PantallaLabState();
+}
+
+class _PantallaLabState extends State<PantallaLab> {
+  bool _ensayarFallo = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final FuenteLab fuente = _ensayarFallo ? LabQueFalla() : LabEnMemoria();
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Medidor')),
+      appBar: AppBar(title: const Text('Laboratorio')),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          const Text(
-            'El aparato viejo sigue devolviendo texto. La app necesita un double.',
+          SwitchListTile(
+            title: const Text('Entregar LabQueFalla'),
+            subtitle: Text('Se entrega: ${fuente.runtimeType}'),
+            value: _ensayarFallo,
+            onChanged: (v) => setState(() => _ensayarFallo = v),
           ),
           const SizedBox(height: 16),
-          FilledButton.icon(
-            icon: const Icon(Icons.speed),
-            label: const Text('Leer medidor'),
-            onPressed: () =>
-                setState(() => _lecturas.add(widget.lector.leerLitros())),
-          ),
-          const SizedBox(height: 16),
-          Text('Lecturas (double): $_lecturas'),
-          Text(
-            'Suma: ${total.toStringAsFixed(1)} L',
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          PantallaRegistro(fuente: fuente),
         ],
       ),
     );
   }
 }
+

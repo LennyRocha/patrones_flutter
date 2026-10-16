@@ -1,10 +1,10 @@
 import 'dart:math';
 
 import 'package:flutter_patrones/casos/factory.dart';
-import 'package:flutter_patrones/casos/strategy.dart';
 import 'package:flutter_patrones/casos/inyeccion_dependencias.dart';
-import 'package:flutter_patrones/casos/observer.dart';
 import 'package:flutter_patrones/casos/adapter.dart';
+import 'package:flutter_patrones/casos/observer.dart';
+import 'package:flutter_patrones/casos/strategy.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
